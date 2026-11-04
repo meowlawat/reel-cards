@@ -1,5 +1,7 @@
 # Reel Cards
 
+[Open the live browser demo](https://meowlawat.github.io/reel-cards-demo/). On GitHub Pages, each browser keeps its own library. To publish a revision, copy only index.html and data.js to the main branch of meowlawat/reel-cards-demo. GitHub Pages serves that branch; keep the pitch files in this private repository.
+
 A scrapbook for lessons from short videos. Save an editable question, try it from memory and let your answer set the next review date.
 
 ## Instagram integration

@@ -25,12 +25,21 @@ button{background:#f1e7de;color:var(--ink)}button:hover{filter:brightness(.97)}:
 @media(max-width:790px){.hero:after{display:none}.hero{min-height:185px}}@media(max-width:440px){header,main,footer{padding:14px}.brand{font-size:23px}.nav{padding:6px 8px}header,nav{gap:4px}.hero{padding:24px 20px}.hero h1{font-size:38px}}
 </style></head><body><header><strong class="brand">Reel <b>Cards</b></strong><nav><button class="nav" data-act="feed">Reels</button><button class="nav" data-act="library">Learned</button><button class="nav" aria-label="Demo settings" data-act="settings">⚙</button></nav></header>
 <main id="app"></main><div id="toast" role="status"></div><footer>Instagram feature study · ProdVerse / Social Media · Sample reels</footer><script src="data.js"></script><script>
-const app=document.querySelector('#app'), online=location.protocol!=='file:', day=86400000;
+const app=document.querySelector('#app'), online=['localhost','127.0.0.1','[::1]'].includes(location.hostname) && ['/','/index.html'].includes(location.pathname), day=86400000;
 let cards={},screen='feed',selected,origin='feed',queue=[],results=[],index=0,busy=false,persistent=true,timer;
 const esc=value=>String(value).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const byId=id=>reels.find(r=>r.id===id);
 const btn=(action,label,id='',cls='')=>'<button class="'+cls+'" data-act="'+action+'" data-id="'+id+'">'+label+'</button>';
 function notify(msg){const el=document.querySelector('#toast');el.className='toast';el.textContent=msg;clearTimeout(timer);timer=setTimeout(()=>{el.textContent='';el.className=''},3000)}
+function readBrowserLibrary(){
+ const raw=JSON.parse(localStorage.getItem('reelcards_state')||'{}');
+ const valid={};
+ for(const {id} of reels){
+   const c=raw?.[id];
+   if(c?.id===id && Number.isFinite(c.dueAt) && Number.isInteger(c.reps) && c.reps>=0 && Number.isFinite(c.ease) && Number.isFinite(c.interval))valid[id]=c;
+ }
+ return valid;
+}
 function due(c){const now=Date.now();if(c.dueAt<now-day)return 'Overdue';if(c.dueAt<=now)return 'Due today';const d=new Date(c.dueAt);if(d.toDateString()===new Date(now+day).toDateString())return 'Reviews tomorrow';return 'Review '+d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}
 async function change(action,id,extra={}){
  if(online){const response=await fetch('/api/library',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,id,...extra})});if(!response.ok)throw Error((await response.json()).error||'Could not save. Try again.');cards=await response.json();return}
@@ -58,6 +67,6 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-act]
  else if(a==='correct'||a==='forgot'){await change(a,id,{previous:cards[id].lastReviewedAt});results.push(a);index++;if(index===queue.length)screen='summary'}
  draw();if(!['save','edit'].includes(a))window.scrollTo(0,0)
  }catch(err){notify(err.message)}finally{busy=false}});
-async function init(){try{if(online){const res=await fetch('/api/library');if(!res.ok)throw Error();cards=await res.json()}else{try{cards=JSON.parse(localStorage.getItem('reelcards_state')||'{}')||{}}catch{cards={}}}draw()}catch{app.innerHTML='<p class="error">The library is unavailable. Start server.py and reload, or open index.html directly for offline mode.</p>'}}
+async function init(){try{if(online){const res=await fetch('/api/library',{signal:AbortSignal.timeout(8000)});if(!res.ok)throw Error();cards=await res.json()}else{try{cards=readBrowserLibrary()}catch{cards={}}}draw()}catch{app.innerHTML='<p class="error">Your library could not load. Check the local server and try again.</p><button onclick="init()">Retry</button>'}}
 init();
 </script></body></html>
